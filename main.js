@@ -18,7 +18,6 @@ let result;
 
 initialseCalc();
 
-
 numberBtns.forEach((btn) => {
   btn.addEventListener('click', () => {
     // user starts by inputing numbers
@@ -119,7 +118,7 @@ function evaluate(calc) {
     case '-':
         result = sub(a, b);
       break;
-    case 'x':
+    case '×':
         result = multiply(a, b);
       break;
 
