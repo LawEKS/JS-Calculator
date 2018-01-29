@@ -8,7 +8,7 @@ window.onload = function() {
 
 keypad.addEventListener('click', handleInput, false);
 
-let States = {
+const States = {
   NEW_CALCULATIOIN: 1,
   BUILDING_CALCULATION: 2,
   HAVE_RESULT: 3,
@@ -30,7 +30,6 @@ numberMap.set('seven', '7');
 numberMap.set('eight', '8');
 numberMap.set('nine', '9');
 numberMap.set('point', '.');
-// numberMap.forEach((value, key, map) => console.log(value));
 
 const operatorMap = new Map();
 operatorMap.set('add', '+');
@@ -44,67 +43,71 @@ actionMap.set('clear', 'clear');
 actionMap.set('equal', 'equal');
 
 
-function newCalculation(intialValue = '0') {
-  intialValue === '0' ? currentState = States.NEW_CALCULATIOIN
-                      : currentState = States.BUILDING_CALCULATION;
-
-  display.value = intialValue;
-  calculation = intialValue === '0' ? '' : intialValue;
-  console.log(calculation);
-}
-
 function handleInput(e) {
   const btn = e.target.id;
-  console.log(btn.id);
 
   if (numberMap.has(btn)) {
-    console.log('number input');
+    const previousInput = calculation.slice(-1);
+    let currentNumber = numberMap.get(btn);
+
+    if (previousInput === '.' && currentNumber === '.') {
+      currentNumber = '';
+    }
+
     if (currentState === States.NEW_CALCULATIOIN
         || currentState === States.BUILDING_CALCULATION) {
-      updateCalc(numberMap.get(btn));
-
+      updateCalc(currentNumber);
     }
 
     if (currentState === States.HAVE_RESULT) {
       newCalculation();
-      updateCalc(numberMap.get(btn));
+      updateCalc(currentNumber);
     }
-  }
+  } // number input
 
   if (operatorMap.has(btn)) {
-    console.log('operator input');
+    const previousInput = calculation.slice(-1);
+    let currentOperator = operatorMap.get(btn);
+
+    if (['+', '-', '*', '/'].includes(previousInput)) {
+      if (!(previousInput !== '-' && currentOperator === '-')) {
+        currentOperator = '';
+      }
+    }
+
     if (currentState === States.NEW_CALCULATIOIN
       || currentState === States.BUILDING_CALCULATION) {
-      updateCalc(operatorMap.get(btn));
+      updateCalc(currentOperator);
     }
 
     if (currentState === States.HAVE_RESULT) {
       newCalculation(result);
-      updateCalc(operatorMap.get(btn));
+      updateCalc(currentOperator);
     }
-
-  }
+  } // operator input
 
   if (actionMap.has(btn)) {
-    // when 'clear' is pressed enter state 1.
-    // when in state 1. clear is unavaliable
-    // when in state 2. 'delete' keeps you in state 2 and removes last input
-    // when in state 3. 'delete' is unavaliable
-
     let action = actionMap.get(btn);
-    console.log('take action', action);
 
     if (action === 'equal') {
-      console.log('evaluate', calculation);
       getResult(calculation);
     }
 
     if (action === 'delete') {
       deletePrevious();
     }
-  }
-  console.log('state: ', currentState);
+  } // action input
+
+  console.log('\nstate: ', currentState);
   console.log(`display: ${display.value} calc: ${calculation}`);
+}
+
+function newCalculation(intialValue = '0') {
+  intialValue === '0' ? currentState = States.NEW_CALCULATIOIN
+                      : currentState = States.BUILDING_CALCULATION;
+
+  display.value = intialValue;
+  calculation = intialValue === '0' ? '' : intialValue;
 }
 
 function updateCalc(string = '') {
@@ -117,7 +120,6 @@ function updateCalc(string = '') {
       currentState = States.BUILDING_CALCULATION;
     }
   } else if (currentState === States.HAVE_RESULT) {
-    console.log('update result');
     display.value = formatDisplay(string);
     calculation = string;
   } else {
@@ -137,16 +139,27 @@ function formatDisplay(string) {
   return string;
 }
 
-function getResult(string) {
-// TODO: need to add validation if calc is complete
-let valid = true;
-  if (currentState === States.BUILDING_CALCULATION) {
-    result = eval(string).toString();
-    console.log(result);
-    if (valid) {
-      currentState = States.HAVE_RESULT;
-      updateCalc(result);
+function formatResult(number) {
+  const isInt = number % 1 === 0;
+  if (isInt) {
+    return number.toString();
+  } else {
+    let currentFloat = number.toFixed(3);
+    let lastDigit = currentFloat.slice(-1);
+
+    while (lastDigit === '0') {
+      currentFloat = currentFloat.slice(0, -1);
+      lastDigit = currentFloat.slice(-1);
     }
+    return currentFloat;
+  }
+}
+
+function getResult(string) {
+  if (currentState === States.BUILDING_CALCULATION) {
+    result = formatResult(eval(string));
+    currentState = States.HAVE_RESULT;
+    updateCalc(result);
   }
 }
 
