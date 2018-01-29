@@ -1,150 +1,159 @@
 
 const display = document.getElementById('display');
+const keypad = document.querySelector('.keypad');
 
-const numberBtns = document.querySelectorAll('.number');
-const operatorBtns = document.querySelectorAll('.operator');
+window.onload = function() {
+  newCalculation();
+}
 
-const equalBtn = document.getElementById('equal');
-const deleteBtn = document.getElementById('delete');
+keypad.addEventListener('click', handleInput, false);
 
+let States = {
+  NEW_CALCULATIOIN: 1,
+  BUILDING_CALCULATION: 2,
+  HAVE_RESULT: 3,
+};
 
-let initialised;
-let writingNum;
-let writingOperator;
-let currentNum;
-let currentOperator;
-let expression;
+let currentState;
+let calculation;
 let result;
 
-initialseCalc();
+const numberMap = new Map();
+numberMap.set('zero', '0');
+numberMap.set('one', '1');
+numberMap.set('two', '2');
+numberMap.set('three', '3');
+numberMap.set('four', '4');
+numberMap.set('five', '5');
+numberMap.set('six', '6');
+numberMap.set('seven', '7');
+numberMap.set('eight', '8');
+numberMap.set('nine', '9');
+numberMap.set('point', '.');
+// numberMap.forEach((value, key, map) => console.log(value));
 
-numberBtns.forEach((btn) => {
-  btn.addEventListener('click', () => {
-    // user starts by inputing numbers
-    if (initialised){
-      currentNum = '';
-      display.value = '';
+const operatorMap = new Map();
+operatorMap.set('add', '+');
+operatorMap.set('subtract', '-');
+operatorMap.set('multiply', '*');
+operatorMap.set('divide', '/');
+
+const actionMap = new Map();
+actionMap.set('delete', 'delete');
+actionMap.set('clear', 'clear');
+actionMap.set('equal', 'equal');
+
+
+function newCalculation(intialValue = '0') {
+  intialValue === '0' ? currentState = States.NEW_CALCULATIOIN
+                      : currentState = States.BUILDING_CALCULATION;
+
+  display.value = intialValue;
+  calculation = intialValue === '0' ? '' : intialValue;
+  console.log(calculation);
+}
+
+function handleInput(e) {
+  const btn = e.target.id;
+  console.log(btn.id);
+
+  if (numberMap.has(btn)) {
+    console.log('number input');
+    if (currentState === States.NEW_CALCULATIOIN
+        || currentState === States.BUILDING_CALCULATION) {
+      updateCalc(numberMap.get(btn));
+
     }
 
-    initialised = false;
-    writeToDisplay(btn.innerHTML);
+    if (currentState === States.HAVE_RESULT) {
+      newCalculation();
+      updateCalc(numberMap.get(btn));
+    }
+  }
 
-    if (writingOperator) {
-      expression.push(currentOperator);
-      currentOperator = '';
+  if (operatorMap.has(btn)) {
+    console.log('operator input');
+    if (currentState === States.NEW_CALCULATIOIN
+      || currentState === States.BUILDING_CALCULATION) {
+      updateCalc(operatorMap.get(btn));
     }
 
-    writingNum = true;
-    writingOperator = false;
-    currentNum += btn.innerHTML;
-  });
-});
-
-operatorBtns.forEach((btn) => {
-  btn.addEventListener('click', () => {
-    initialised = false;
-    writeToDisplay(btn.innerHTML);
-
-    if (writingNum) {
-      expression.push(currentNum);
-      currentNum = '';
+    if (currentState === States.HAVE_RESULT) {
+      newCalculation(result);
+      updateCalc(operatorMap.get(btn));
     }
 
-    writingOperator = true;
-    writingNum = false;
-    currentOperator += btn.innerHTML;
-  });
-});
-
-
-deleteBtn.addEventListener('click', function () {
-  display.value = display.value.slice(0, -1);
-
-  if (writingNum) {
-    currentNum = currentNum.slice(0, -1);
-  }
-  if (writingOperator) {
-    currentOperator = currentOperator.slice(0, -1);
-  }
-});
-
-
-equalBtn.addEventListener('click', function () {
-  if (currentNum != '') {
-    expression.push(currentNum);
   }
 
-  display.value = '';
+  if (actionMap.has(btn)) {
+    // when 'clear' is pressed enter state 1.
+    // when in state 1. clear is unavaliable
+    // when in state 2. 'delete' keeps you in state 2 and removes last input
+    // when in state 3. 'delete' is unavaliable
 
-  if (isValid(expression)) {
-    display.style.border = 'none';
-    evaluate(expression);
+    let action = actionMap.get(btn);
+    console.log('take action', action);
+
+    if (action === 'equal') {
+      console.log('evaluate', calculation);
+      getResult(calculation);
+    }
+
+    if (action === 'delete') {
+      deletePrevious();
+    }
+  }
+  console.log('state: ', currentState);
+  console.log(`display: ${display.value} calc: ${calculation}`);
+}
+
+function updateCalc(string = '') {
+  if (currentState === States.NEW_CALCULATIOIN) {
+    if (string === '+' || string === '*' || string === '/') {
+      currentState = States.NEW_CALCULATIOIN;
+    } else {
+      display.value = formatDisplay(string);
+      calculation = string;
+      currentState = States.BUILDING_CALCULATION;
+    }
+  } else if (currentState === States.HAVE_RESULT) {
+    console.log('update result');
+    display.value = formatDisplay(string);
+    calculation = string;
   } else {
-    display.style.border = '5px solid red';
+    display.value += formatDisplay(string);
+    calculation += string;
+    currentState = States.BUILDING_CALCULATION;
   }
-
-});
-
-
-function initialseCalc() {
-  initialised = true;
-  writingNum = true;
-  writingOperator = false;
-
-  currentNum = '0';
-  currentOperator = '';
-  display.value = currentNum;
-  expression = [];
-  result = '';
 }
 
-function writeToDisplay(input) {
-
-  console.log(input);
-
-  // TODO: must limit to one operation per expression
-  display.value += input;
-}
-
-function evaluate(calc) {
-  // TODO: must find what calculation that needs to be done
-  let a = parseFloat(calc[0]);
-  let b = parseFloat(calc[2]);
-  switch (calc[1]) {
-    case '+':
-        result = add(a, b);
-      break;
-
-    case '-':
-        result = sub(a, b);
-      break;
-    case '×':
-        result = multiply(a, b);
-      break;
-
-    case '÷':
-        result = divide(a, b);
-      break;
-    default:
-      result = calc.toString();
-      break;
+function formatDisplay(string) {
+  if (string === '*') {
+    return '×';
   }
-
-  display.value = result;
+  if (string === '/') {
+    return '÷';
+  }
+  return string;
 }
 
-function isValid(expression) {
-  // take my expression as string and break it up using split on an operator
-  // true if last char is a number
-  // true if even numbebr of numbers and odd number of operators
-  // true if numbers are Negative
-  // a number is negative if '-' is before a number and there is nothing before it or only one operatror
-  return expression.length === 3 ? true : (false);
-  console.log(expression);
-  // return false;
+function getResult(string) {
+// TODO: need to add validation if calc is complete
+let valid = true;
+  if (currentState === States.BUILDING_CALCULATION) {
+    result = eval(string).toString();
+    console.log(result);
+    if (valid) {
+      currentState = States.HAVE_RESULT;
+      updateCalc(result);
+    }
+  }
 }
 
-const add = (a, b) => (a + b).toString();
-const sub = (a, b) => (a - b).toString();
-const multiply = (a, b) => (a * b).toString();
-const divide = (a, b) => (a / b).toString();
+function deletePrevious() {
+  display.value = display.value.slice(0, -1);
+  calculation = calculation.slice(0, -1);
+  if (currentState === States.HAVE_RESULT) {
+    result = result.slice(0, -1);
+  }
+}
